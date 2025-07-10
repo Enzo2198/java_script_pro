@@ -4,46 +4,73 @@ const taskList = document.querySelector('#task-list')
 const todoForm = document.querySelector('#todo-form')
 const todoInput = document.querySelector('#todo-input')
 
-taskList.onclick = function (e) {
+function isDuplicateTask(value, excludeIndex = -1) {
+  const isDuplicate =  tasks.some((task, index) =>
+    task.title.toLowerCase() === value.toLowerCase()
+    && excludeIndex !== index
+  )
+  return isDuplicate
+}
+
+function handleTaskActions(e) {
   const taskItem = e.target.closest('.task-item')
   const taskIndex = +taskItem.getAttribute('task-index')
   const task = tasks[taskIndex]
 
   if(e.target.closest(".edit")) {
-    const newTitle = prompt('Enter the new task title', task.title)
+    let newTitle = prompt('Enter the new task title', task.title)
+
+    if(newTitle === null) return
+
+    newTitle = newTitle.trim()
+    if(!newTitle) return alert('Task title cannot be empty')
+
+    if(isDuplicateTask(newTitle, taskIndex)) return alert('Task already exists')
+
     task.title = newTitle
-    render()
-  } else if (e.target.closest(".done")) {
-    console.log('mark as done/undone')
-  } else if (e.target.closest(".delete")) {
-    console.log('delete')
+    renderTasks()
+    return
+  }
+
+  if (e.target.closest(".done")) {
+    task.completed = !task.completed
+    renderTasks()
+    return
+  }
+
+  if (e.target.closest(".delete")) {
+    if(confirm(`Are you sure you want to delete "${ task.title }?"`)) {
+      tasks.splice(tasks.indexOf(task), 1)
+      renderTasks()
+    }
   }
 }
 
-todoForm.onsubmit = function (e) {
+function addTask(e) {
   e.preventDefault();
-
   const value = todoInput.value.trim()
+  if(!value) return alert('Please enter something')
 
-  if(!value) {
-    return alert('Please enter something')
-  }
+  if(isDuplicateTask(value)) return alert('Task already exists')
 
-  const newTask = {
+  tasks.push({
     title: value,
     completed: false
-  }
-
-  tasks.push(newTask)
+  })
 
   // Re-render
-  render()
+  renderTasks()
 
   // Clear input
   todoInput.value = ""
 }
 
-function render() {
+function renderTasks() {
+  if(!tasks.length) {
+    taskList.innerHTML = '<li class="empty-message">No task available</li>'
+    return
+  }
+
   const html = tasks.map((task, index) => `
   <li class="task-item ${task.completed ? 'completed' : ''}" task-index="${index}">
     <span class="task-title">${task.title}</span>
@@ -60,4 +87,7 @@ function render() {
   taskList.innerHTML = html
 }
 
-render()
+todoForm.addEventListener('submit', addTask)
+taskList.addEventListener("click", handleTaskActions)
+
+renderTasks()
